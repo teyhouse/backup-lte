@@ -9,11 +9,32 @@ cp .env.example .env
 # Fill in BOT_TOKEN, CHANNEL_ID, OWNER_ID, GUILD_ID
 ```
 
-## Run
-
 ```bash
 uv sync
+```
+
+## Run
+
+### Foreground (testing)
+
+```bash
 uv run python main.py
+```
+
+### Background (survives SSH disconnect)
+
+```bash
+nohup uv run python main.py > /home/pi/lte-bot/bot.log 2>&1 &
+```
+
+Stop with: `kill $(pgrep -f "main.py")`
+
+### Auto-start on boot (cron)
+
+Add to crontab (`crontab -e`):
+
+```
+@reboot cd /home/pi/lte-bot && PATH=/home/pi/.local/bin:/usr/local/bin:/usr/bin:/bin uv run python main.py >> /home/pi/lte-bot/bot.log 2>&1
 ```
 
 ## How it works
