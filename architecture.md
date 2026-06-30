@@ -270,9 +270,10 @@ To use mock data instead (e.g. for testing without a network connection):
 The embedded `MOCK_DATA` dict mirrors the real API's flat structure and is
 parsed by the same `_parse_data()` function.
 
-## Future API Changes
+## API Adaptation Layer
 
-If the real API endpoint changes or requires authentication, only
-`get_lte_data()` in `data_fetcher.py` needs to be updated — no other file is
-affected. The `_parse_data()` function is the single adapter between the raw
-JSON and the rest of the codebase.
+The `data_fetcher.py` module serves as the sole interface between the Telekom
+API and the rest of the bot. `_parse_data()` is the single adapter that maps
+the raw JSON into `LteData`. If the API endpoint changes, requires
+authentication, or the response schema evolves, only this file needs to be
+updated — no other component is affected.
