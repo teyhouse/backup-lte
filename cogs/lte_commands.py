@@ -15,17 +15,18 @@ class LteCommands(commands.Cog):
         name="lte", description="Show current LTE data usage"
     )
     async def lte_data(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+
         if interaction.user.id != OWNER_ID:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "❌ You are not authorized to use this command.",
                 ephemeral=True,
             )
             return
 
-        await interaction.response.defer()
         data = await get_lte_data()
         embed = build_embed(data)
-        await interaction.followup.send(embed=embed)
+        await interaction.followup.send(embed=embed, ephemeral=False)
 
 
 async def setup(bot: commands.Bot):
