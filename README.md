@@ -34,7 +34,7 @@ Stop with: `kill $(pgrep -f "main.py")`
 Add to crontab (`crontab -e`):
 
 ```
-@reboot cd /home/pi/lte-bot && PATH=/home/pi/.local/bin:/usr/local/bin:/usr/bin:/bin uv run python main.py >> /home/pi/lte-bot/bot.log 2>&1
+@reboot cd /home/pi/lte-bot && sleep 30 && PATH=/home/pi/.local/bin:/usr/local/bin:/usr/bin:/bin uv run python main.py >> /home/pi/lte-bot/bot.log 2>&1
 ```
 
 ## How it works
