@@ -1,5 +1,7 @@
 # LTE Bot
 
+[![CI](https://github.com/teyhouse/backup-lte/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/teyhouse/backup-lte/actions/workflows/ci.yml)
+
 Discord bot that monitors Telekom LTE data plan usage via `pass.telekom.de`. Posts a daily summary, provides an on-demand `/lte` slash command, and alerts when usage exceeds 90%.
 
 ## Setup
