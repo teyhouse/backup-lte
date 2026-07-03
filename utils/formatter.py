@@ -119,12 +119,12 @@ def build_alert_embed(data: LteData) -> discord.Embed:
     return embed
 
 
-def build_all_clear_embed(percent: float, remaining_gb: int) -> discord.Embed:
+def build_all_clear_embed(percent: float, remaining_bytes: int) -> discord.Embed:
     return discord.Embed(
         title="✅ Usage Normalized",
         description=(
             f"Usage is back to **{percent:.0f}%** "
-            f"({remaining_gb} GB remaining)."
+            f"({_format_bytes(remaining_bytes)} remaining)."
         ),
         color=0x2ECC71,
     )

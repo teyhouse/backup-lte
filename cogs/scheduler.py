@@ -4,6 +4,9 @@ from discord.ext import commands, tasks
 from config import CHANNEL_ID, SUMMARY_TIME
 from data_fetcher import get_lte_data
 from utils.formatter import build_alert_embed, build_all_clear_embed, build_embed
+from utils.logger import get_logger
+
+logger = get_logger("scheduler")
 
 
 class Scheduler(commands.Cog):
@@ -26,14 +29,28 @@ class Scheduler(commands.Cog):
                 return None
         return channel
 
+    async def _try_fetch(self) -> None:
+        try:
+            return await get_lte_data()
+        except Exception:
+            logger.exception("Failed to fetch LTE data")
+            return None
+
     @tasks.loop(time=SUMMARY_TIME)
     async def daily_summary(self):
-        channel = await self._channel()
-        if channel is None:
-            return
-        data = await get_lte_data()
-        embed = build_embed(data)
-        await channel.send(embed=embed)
+        try:
+            channel = await self._channel()
+            if channel is None:
+                logger.warning("Daily summary: channel not found")
+                return
+            data = await self._try_fetch()
+            if data is None:
+                return
+            embed = build_embed(data)
+            await channel.send(embed=embed)
+            logger.info("Daily summary posted")
+        except Exception:
+            logger.exception("Daily summary failed")
 
     @daily_summary.before_loop
     async def before_daily(self):
@@ -41,20 +58,27 @@ class Scheduler(commands.Cog):
 
     @tasks.loop(minutes=5)
     async def alert_check(self):
-        channel = await self._channel()
-        if channel is None:
-            return
-        data = await get_lte_data()
-        is_overloaded = data.used_percent >= 90
+        try:
+            channel = await self._channel()
+            if channel is None:
+                return
+            data = await self._try_fetch()
+            if data is None:
+                return
+            is_overloaded = data.used_percent >= 90
 
-        if is_overloaded and not self._was_alerted:
-            embed = build_alert_embed(data)
-            await channel.send(embed=embed)
-            self._was_alerted = True
-        elif not is_overloaded and self._was_alerted:
-            embed = build_all_clear_embed(data.used_percent, data.remaining_gb)
-            await channel.send(embed=embed)
-            self._was_alerted = False
+            if is_overloaded and not self._was_alerted:
+                embed = build_alert_embed(data)
+                await channel.send(embed=embed)
+                self._was_alerted = True
+                logger.info("Alert triggered at %.0f%%", data.used_percent)
+            elif not is_overloaded and self._was_alerted:
+                embed = build_all_clear_embed(data.used_percent, data.remaining_bytes)
+                await channel.send(embed=embed)
+                self._was_alerted = False
+                logger.info("All-clear sent")
+        except Exception:
+            logger.exception("Alert check failed")
 
     @alert_check.before_loop
     async def before_alert(self):
