@@ -6,7 +6,6 @@ from utils.formatter import (
     _usage_bar,
     _usage_color,
     _format_bytes,
-    _format_duration,
     build_alert_embed,
     build_all_clear_embed,
     build_embed,
@@ -58,20 +57,6 @@ class TestFormatBytes(unittest.TestCase):
         self.assertEqual(_format_bytes(2_147_483_648), "2.0 GB")
 
 
-class TestFormatDuration(unittest.TestCase):
-    def test_seconds(self):
-        self.assertEqual(_format_duration(30), "30s")
-
-    def test_minutes(self):
-        self.assertEqual(_format_duration(150), "2m")
-
-    def test_hours(self):
-        self.assertEqual(_format_duration(3661), "1h 1m")
-
-    def test_days(self):
-        self.assertEqual(_format_duration(90_000), "1d 1h")
-
-
 class TestBuildEmbed(unittest.TestCase):
     def setUp(self):
         self.data = _parse_data(MOCK_DATA)
@@ -86,7 +71,7 @@ class TestBuildEmbed(unittest.TestCase):
 
     def test_fields_count(self):
         embed = build_embed(self.data)
-        self.assertEqual(len(embed.fields), 4)
+        self.assertEqual(len(embed.fields), 3)
 
     def test_usage_field_shows_percent(self):
         embed = build_embed(self.data)
