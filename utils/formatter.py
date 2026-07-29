@@ -29,18 +29,12 @@ def _format_bytes(b: int) -> str:
     return f"{b} B"
 
 
-def _format_duration(seconds: int) -> str:
-    if seconds >= 86400:
-        return f"{seconds // 86400}d {seconds % 86400 // 3600}h"
-    if seconds >= 3600:
-        return f"{seconds // 3600}h {seconds % 3600 // 60}m"
-    if seconds >= 60:
-        return f"{seconds // 60}m"
-    return f"{seconds}s"
-
-
 def _dt_short(dt: datetime) -> str:
     return dt.strftime("%b %d, %H:%M UTC")
+
+
+def _dt_date(dt: datetime) -> str:
+    return dt.strftime("%b %d, %Y")
 
 
 def build_embed(data: LteData) -> discord.Embed:
@@ -48,10 +42,8 @@ def build_embed(data: LteData) -> discord.Embed:
     bar = _usage_bar(data.used_percent)
 
     status_emoji = "🟢" if data.status == "active" else "🔴"
-    description = (
-        f"{status_emoji} {data.status.title()} · "
-        f"{data.validity_period_weeks}-week plan"
-    )
+    valid_str = _dt_date(data.valid_until) if data.valid_until else "—"
+    description = f"{status_emoji} {data.status_text} · Valid until {valid_str}"
 
     embed = discord.Embed(
         title=f"📶 {data.pass_name}",
@@ -78,20 +70,13 @@ def build_embed(data: LteData) -> discord.Embed:
         name="Time",
         value=(
             f"**{data.remaining_days} days** remaining\n"
-            f"└ Next update: {_format_duration(data.next_update_seconds)}"
+            f"└ Valid until: {valid_str}"
         ),
         inline=True,
     )
 
-    subs = ", ".join(data.subscriptions) if data.subscriptions else "—"
-    embed.add_field(
-        name="Subscriptions",
-        value=subs,
-        inline=True,
-    )
-
     embed.set_footer(
-        text=f"Last used: {_dt_short(data.used_at)} · pass.telekom.de"
+        text=f"Last update: {_dt_short(data.last_update)} · pass.telekom.de"
     )
 
     return embed
@@ -114,7 +99,7 @@ def build_alert_embed(data: LteData) -> discord.Embed:
     embed.add_field(name="Remaining", value=remaining)
     embed.add_field(name="Days left", value=f"{data.remaining_days} days")
     embed.set_footer(
-        text=f"Checked: {_dt_short(data.used_at)} · pass.telekom.de"
+        text=f"Checked: {_dt_short(data.last_update)} · pass.telekom.de"
     )
     return embed
 
