@@ -128,6 +128,16 @@ def _parse_data(raw: dict) -> LteData:
     )
 
 
+def _fmt_bytes(b: int) -> str:
+    if b >= 1_073_741_824:
+        return f"{b / 1_073_741_824:.1f} GB"
+    if b >= 1_048_576:
+        return f"{b / 1_048_576:.1f} MB"
+    if b >= 1024:
+        return f"{b / 1024:.1f} KB"
+    return f"{b} B"
+
+
 def _extract_summation_pass(html: str) -> dict | None:
     m = re.search(
         r'<section\s+class="data-pass-instance"\s+id="summationPass">'
@@ -143,14 +153,16 @@ def _extract_summation_pass(html: str) -> dict | None:
     )
     if not m:
         return None
-    used_val, total_val, unit, percent = m.groups()
-    used_num = _parse_german_float(used_val)
+    remaining_val, total_val, unit, remaining_pct_str = m.groups()
+    remaining_num = _parse_german_float(remaining_val)
     total_num = _parse_german_float(total_val)
-    used_pct = _parse_german_float(percent)
+    remaining_pct = _parse_german_float(remaining_pct_str)
+    used_pct = round(100 - remaining_pct, 1)
     multiplier = 1_073_741_824 if unit.upper() == "GB" else 1_048_576 if unit.upper() == "MB" else 1
+    used_bytes = int((total_num - remaining_num) * multiplier)
     return {
-        "used_bytes": int(used_num * multiplier),
-        "used_bytes_str": f"{used_val} {unit}",
+        "used_bytes": used_bytes,
+        "used_bytes_str": _fmt_bytes(used_bytes),
         "total_bytes": int(total_num * multiplier),
         "total_bytes_str": f"{total_val} {unit}",
         "used_percent": used_pct,
