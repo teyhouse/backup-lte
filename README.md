@@ -45,6 +45,6 @@ Add to crontab (`crontab -e`):
 - **Daily summary** — Posts a full usage embed automatically at 08:00 CET/CEST to the configured channel.
 - **Alert check** — Every 5 minutes, checks if usage exceeds 90%. Posts a warning once when crossing the threshold and an all-clear when it drops back below.
 
-Data is fetched via HTTP GET from `pass.telekom.de/api/service/generic/v1/status`. Set `MOCK_MODE=true` in `.env` to use embedded test data instead.
+Data is fetched by scraping the HTML page at `pass.telekom.de/home` (no auth required when behind Telekom LTE). Set `MOCK_MODE=true` in `.env` to use embedded test data instead.
 
 For a detailed breakdown of each component, see `architecture.md`.
