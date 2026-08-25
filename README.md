@@ -69,7 +69,9 @@ Stop with: `kill $(pgrep -f "main.py")`
 - **Daily summary** — Posts a full usage embed automatically at 08:00 CET/CEST to the configured channel.
 - **Alert check** — Every 5 minutes, checks if usage exceeds the alert threshold (`ALERT_THRESHOLD`, default 90%). Posts a warning once when crossing the threshold and an all-clear when it drops back below.
 
-Data is fetched by scraping the HTML page at `pass.telekom.de/home` (no auth required when behind Telekom LTE). Set `MOCK_MODE=true` in `.env` to use embedded test data instead.
+Data is fetched by scraping the customer-facing HTML page at `pass.telekom.de/home` (no auth required when behind Telekom LTE). Set `MOCK_MODE=true` in `.env` to use embedded test data instead.
+
+> **Note:** This project originally used the JSON usage-data API at `pass.telekom.de/api/service/generic/v1/status`. Telekom is gradually disabling that endpoint for customers, so the bot now parses the HTML page instead.
 
 ## Development
 
