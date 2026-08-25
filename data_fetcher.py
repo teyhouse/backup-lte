@@ -1,16 +1,35 @@
+import contextlib
 import logging
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
+
+import aiohttp
+
+from config import MOCK_MODE
+from utils.humanize import format_bytes
 
 logger = logging.getLogger(__name__)
 
 HTML_URL = "https://pass.telekom.de/home"
-USER_AGENT = "Mozilla/5.0 (Linux; Android 15; SM-S938B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36"
+USER_AGENT = (
+    "Mozilla/5.0 (Linux; Android 15; SM-S938B) AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/140.0.0.0 Mobile Safari/537.36"
+)
 
 MONTH_MAP = {
-    "Januar": 1, "Februar": 2, "März": 3, "April": 4, "Mai": 5, "Juni": 6,
-    "Juli": 7, "August": 8, "September": 9, "Oktober": 10, "November": 11, "Dezember": 12,
+    "Januar": 1,
+    "Februar": 2,
+    "März": 3,
+    "April": 4,
+    "Mai": 5,
+    "Juni": 6,
+    "Juli": 7,
+    "August": 8,
+    "September": 9,
+    "Oktober": 10,
+    "November": 11,
+    "Dezember": 12,
 }
 
 
@@ -37,7 +56,7 @@ class LteData:
         if not self.session_state:
             self.session_state = 0 if self.status_text.lower() in ("aktiv", "active") else 1
         if not self.remaining_seconds and self.valid_until:
-            delta = self.valid_until - datetime.now(timezone.utc)
+            delta = self.valid_until - datetime.now(UTC)
             self.remaining_seconds = max(int(delta.total_seconds()), 0)
 
     @property
@@ -74,7 +93,7 @@ MOCK_DATA = {
 
 
 def _parse_ms_timestamp(ms: int) -> datetime:
-    return datetime.fromtimestamp(ms / 1000, tz=timezone.utc)
+    return datetime.fromtimestamp(ms / 1000, tz=UTC)
 
 
 def _parse_german_float(text: str) -> float:
@@ -82,30 +101,29 @@ def _parse_german_float(text: str) -> float:
 
 
 def _parse_german_date(text: str) -> datetime:
-    m = re.match(r'(\d+)\.\s*(\w+)\s+(\d{4})', text.strip())
+    m = re.match(r"(\d+)\.\s*(\w+)\s+(\d{4})", text.strip())
     if not m:
         raise ValueError(f"cannot parse German date: {text}")
     day, month_name, year = int(m.group(1)), m.group(2), int(m.group(3))
     month = MONTH_MAP.get(month_name)
     if month is None:
         raise ValueError(f"unknown month: {month_name}")
-    return datetime(year, month, day, tzinfo=timezone.utc)
+    return datetime(year, month, day, tzinfo=UTC)
 
 
 def _parse_last_update_time(text: str) -> datetime:
-    m = re.match(r'(\d+)\.(\d+)\.(\d+)\s*um\s*(\d+):(\d+)', text.strip())
+    m = re.match(r"(\d+)\.(\d+)\.(\d+)\s*um\s*(\d+):(\d+)", text.strip())
     if not m:
         raise ValueError(f"cannot parse last-update time: {text}")
     day, month, year, hour, minute = (
-        int(m.group(1)), int(m.group(2)), int(m.group(3)),
-        int(m.group(4)), int(m.group(5)),
+        int(m.group(1)),
+        int(m.group(2)),
+        int(m.group(3)),
+        int(m.group(4)),
+        int(m.group(5)),
     )
     year += 2000 if year < 100 else 0
-    return datetime(year, month, day, hour, minute, tzinfo=timezone.utc)
-
-
-def _gb_to_bytes(gb: float) -> int:
-    return int(gb * 1_073_741_824)
+    return datetime(year, month, day, hour, minute, tzinfo=UTC)
 
 
 def _parse_data(raw: dict) -> LteData:
@@ -128,28 +146,19 @@ def _parse_data(raw: dict) -> LteData:
     )
 
 
-def _fmt_bytes(b: int) -> str:
-    if b >= 1_073_741_824:
-        return f"{b / 1_073_741_824:.1f} GB"
-    if b >= 1_048_576:
-        return f"{b / 1_048_576:.1f} MB"
-    if b >= 1024:
-        return f"{b / 1024:.1f} KB"
-    return f"{b} B"
-
-
 def _extract_summation_pass(html: str) -> dict | None:
     m = re.search(
         r'<section\s+class="data-pass-instance"\s+id="summationPass">'
-        r'.*?'
+        r".*?"
         r'<div\s+class="remaining-volume-value">([\d.,]+)\s*</div>'
-        r'.*?'
+        r".*?"
         r'<div\s+class="start-volume">([\d.,]+)</div>'
-        r'.*?'
+        r".*?"
         r'<div\s+class="volume-unit">(\w+)</div>'
-        r'.*?'
-        r'--to-width:([\d.]+)%',
-        html, re.DOTALL,
+        r".*?"
+        r"--to-width:([\d.]+)%",
+        html,
+        re.DOTALL,
     )
     if not m:
         return None
@@ -162,7 +171,7 @@ def _extract_summation_pass(html: str) -> dict | None:
     used_bytes = int((total_num - remaining_num) * multiplier)
     return {
         "used_bytes": used_bytes,
-        "used_bytes_str": _fmt_bytes(used_bytes),
+        "used_bytes_str": format_bytes(used_bytes),
         "total_bytes": int(total_num * multiplier),
         "total_bytes_str": f"{total_val} {unit}",
         "used_percent": used_pct,
@@ -170,7 +179,7 @@ def _extract_summation_pass(html: str) -> dict | None:
 
 
 def _extract_pass_name(html: str) -> str | None:
-    m = re.search(r'<h1[^>]*>\s*<span>([^<]+)</span>\s*</h1>', html)
+    m = re.search(r"<h1[^>]*>\s*<span>([^<]+)</span>\s*</h1>", html)
     return m.group(1).strip() if m else None
 
 
@@ -179,8 +188,8 @@ def _extract_status_and_valid_until(html: str) -> tuple[str | None, datetime | N
     valid_until = None
     for m in re.finditer(
         r'<section\s+class="data-pass-instance[^"]*"[^>]*id="pass-[^"]+"[^>]*>'
-        r'([\s\S]*?)'
-        r'</section>',
+        r"([\s\S]*?)"
+        r"</section>",
         html,
     ):
         content = m.group(1)
@@ -189,17 +198,15 @@ def _extract_status_and_valid_until(html: str) -> tuple[str | None, datetime | N
             if rm:
                 status = rm.group(1).strip()
         if valid_until is None:
-            vm = re.search(r'Gültig bis:\s*([^<]+)</div>', content)
+            vm = re.search(r"Gültig bis:\s*([^<]+)</div>", content)
             if vm:
-                try:
+                with contextlib.suppress(ValueError):
                     valid_until = _parse_german_date(vm.group(1).strip())
-                except ValueError:
-                    pass
     return status, valid_until
 
 
 def _extract_last_update(html: str) -> datetime | None:
-    m = re.search(r'(\d{2}\.\d{2}\.\d{4})\s*um\s*(\d{2}:\d{2})', html)
+    m = re.search(r"(\d{2}\.\d{2}\.\d{4})\s*um\s*(\d{2}:\d{2})", html)
     if m:
         return _parse_last_update_time(f"{m.group(1)} um {m.group(2)}")
     return None
@@ -211,7 +218,7 @@ def _parse_html(html: str) -> LteData:
         raise ValueError("could not parse summation pass from HTML")
 
     status, valid_until = _extract_status_and_valid_until(html)
-    last_update = _extract_last_update(html) or datetime.now(timezone.utc)
+    last_update = _extract_last_update(html) or datetime.now(UTC)
     pass_name = _extract_pass_name(html) or "Datenvolumen"
 
     return LteData(
@@ -222,29 +229,23 @@ def _parse_html(html: str) -> LteData:
         used_bytes=volume["used_bytes"],
         used_bytes_str=volume["used_bytes_str"],
         used_percent=volume["used_percent"],
-        valid_until=valid_until or datetime.now(timezone.utc) + timedelta(days=30),
+        valid_until=valid_until or datetime.now(UTC) + timedelta(days=30),
         last_update=last_update,
     )
 
 
 async def get_lte_data() -> LteData:
-    from config import MOCK_MODE
-
     if MOCK_MODE:
         return _parse_data(MOCK_DATA)
 
-    import aiohttp
-
-    async with aiohttp.ClientSession() as session:
-        async with session.get(
+    async with (
+        aiohttp.ClientSession() as session,
+        session.get(
             HTML_URL,
             headers={"User-Agent": USER_AGENT},
             timeout=aiohttp.ClientTimeout(total=15),
-        ) as resp:
-            resp.raise_for_status()
-            html = await resp.text()
-            try:
-                return _parse_html(html)
-            except ValueError:
-                logger.warning("Telekom HTML structure changed, falling back to mock", exc_info=True)
-                return _parse_data(MOCK_DATA)
+        ) as resp,
+    ):
+        resp.raise_for_status()
+        html = await resp.text()
+        return _parse_html(html)

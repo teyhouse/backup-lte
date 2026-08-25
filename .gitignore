@@ -1,4 +1,22 @@
+# Environment & secrets
 .env
+
+# Local-only docs
+architecture.md
+
+# Logs
 bot.log*
+
+# Python
 __pycache__/
+*.py[cod]
 .venv/
+
+# Build artifacts
+dist/
+build/
+
+# IDEs
+.idea/
+.vscode/
+*.swp

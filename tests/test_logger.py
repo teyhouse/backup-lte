@@ -28,7 +28,7 @@ class TestJsonFormatter(unittest.TestCase):
 
     def test_format_with_exception(self):
         try:
-            1 / 0
+            raise ZeroDivisionError
         except ZeroDivisionError:
             import sys
 

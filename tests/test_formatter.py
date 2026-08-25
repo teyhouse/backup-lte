@@ -1,16 +1,14 @@
 import unittest
-from datetime import datetime, timezone
 
-from data_fetcher import LteData, _parse_data, MOCK_DATA
+from data_fetcher import MOCK_DATA, _parse_data
 from utils.formatter import (
     _usage_bar,
     _usage_color,
-    _format_bytes,
     build_alert_embed,
     build_all_clear_embed,
     build_embed,
 )
-from utils.logger import JsonFormatter
+from utils.humanize import format_bytes
 
 
 class TestUsageBar(unittest.TestCase):
@@ -32,7 +30,12 @@ class TestUsageBar(unittest.TestCase):
 class TestUsageColor(unittest.TestCase):
     def test_green_below_80(self):
         self.assertEqual(_usage_color(0), 0x2ECC71)
-        self.assertEqual(_usage_color(79, ), 0x2ECC71)
+        self.assertEqual(
+            _usage_color(
+                79,
+            ),
+            0x2ECC71,
+        )
 
     def test_yellow_80_to_89(self):
         self.assertEqual(_usage_color(80), 0xF1C40F)
@@ -45,16 +48,16 @@ class TestUsageColor(unittest.TestCase):
 
 class TestFormatBytes(unittest.TestCase):
     def test_bytes(self):
-        self.assertEqual(_format_bytes(500), "500 B")
+        self.assertEqual(format_bytes(500), "500 B")
 
     def test_kb(self):
-        self.assertEqual(_format_bytes(2048), "2.0 KB")
+        self.assertEqual(format_bytes(2048), "2.0 KB")
 
     def test_mb(self):
-        self.assertEqual(_format_bytes(1_048_576), "1.0 MB")
+        self.assertEqual(format_bytes(1_048_576), "1.0 MB")
 
     def test_gb(self):
-        self.assertEqual(_format_bytes(2_147_483_648), "2.0 GB")
+        self.assertEqual(format_bytes(2_147_483_648), "2.0 GB")
 
 
 class TestBuildEmbed(unittest.TestCase):

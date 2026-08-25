@@ -1,10 +1,24 @@
 [project]
-name = "lte-bot"
+name = "backup-lte"
 version = "0.1.0"
-description = "Discord bot that monitors LTE data usage from pass.telekom.de"
+description = "Discord bot that monitors Telekom LTE data usage from pass.telekom.de"
+license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
     "discord-py>=2.5",
     "python-dotenv>=1.0",
     "aiohttp>=3.9",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.9",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["*.md"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]

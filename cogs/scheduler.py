@@ -1,8 +1,8 @@
 import discord
 from discord.ext import commands, tasks
 
-from config import CHANNEL_ID, SUMMARY_TIME
-from data_fetcher import get_lte_data
+from config import ALERT_THRESHOLD, CHANNEL_ID, SUMMARY_TIME
+from data_fetcher import LteData, get_lte_data
 from utils.formatter import build_alert_embed, build_all_clear_embed, build_embed
 from utils.logger import get_logger
 
@@ -29,7 +29,7 @@ class Scheduler(commands.Cog):
                 return None
         return channel
 
-    async def _try_fetch(self) -> None:
+    async def _try_fetch(self) -> LteData | None:
         try:
             return await get_lte_data()
         except Exception:
@@ -65,7 +65,7 @@ class Scheduler(commands.Cog):
             data = await self._try_fetch()
             if data is None:
                 return
-            is_overloaded = data.used_percent >= 90
+            is_overloaded = data.used_percent >= ALERT_THRESHOLD
 
             if is_overloaded and not self._was_alerted:
                 embed = build_alert_embed(data)

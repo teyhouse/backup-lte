@@ -14,9 +14,7 @@ class LteCommands(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(
-        name="lte", description="Show current LTE data usage"
-    )
+    @app_commands.command(name="lte", description="Show current LTE data usage")
     async def lte_data(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
 

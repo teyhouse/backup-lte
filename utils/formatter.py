@@ -3,6 +3,7 @@ from datetime import datetime
 import discord
 
 from data_fetcher import LteData
+from utils.humanize import format_bytes
 
 
 def _usage_bar(percent: float, length: int = 12) -> str:
@@ -17,16 +18,6 @@ def _usage_color(percent: float) -> int:
     if percent >= 80:
         return 0xF1C40F
     return 0x2ECC71
-
-
-def _format_bytes(b: int) -> str:
-    if b >= 1_073_741_824:
-        return f"{b / 1_073_741_824:.1f} GB"
-    if b >= 1_048_576:
-        return f"{b / 1_048_576:.1f} MB"
-    if b >= 1024:
-        return f"{b / 1024:.1f} KB"
-    return f"{b} B"
 
 
 def _dt_short(dt: datetime) -> str:
@@ -61,34 +52,28 @@ def build_embed(data: LteData) -> discord.Embed:
         name="Volume",
         value=(
             f"**{data.used_bytes_str}** / {data.total_bytes_str} used\n"
-            f"└ {_format_bytes(data.remaining_bytes)} remaining"
+            f"└ {format_bytes(data.remaining_bytes)} remaining"
         ),
         inline=True,
     )
 
     embed.add_field(
         name="Time",
-        value=(
-            f"**{data.remaining_days} days** remaining\n"
-            f"└ Valid until: {valid_str}"
-        ),
+        value=(f"**{data.remaining_days} days** remaining\n└ Valid until: {valid_str}"),
         inline=True,
     )
 
-    embed.set_footer(
-        text=f"Last update: {_dt_short(data.last_update)} · pass.telekom.de"
-    )
+    embed.set_footer(text=f"Last update: {_dt_short(data.last_update)} · pass.telekom.de")
 
     return embed
 
 
 def build_alert_embed(data: LteData) -> discord.Embed:
-    remaining = _format_bytes(data.remaining_bytes)
+    remaining = format_bytes(data.remaining_bytes)
     embed = discord.Embed(
         title="⚠️ Data Usage Alert",
         description=(
-            f"Usage has reached **{data.used_percent:.0f}%** — "
-            f"only **{remaining}** remaining!"
+            f"Usage has reached **{data.used_percent:.0f}%** — only **{remaining}** remaining!"
         ),
         color=0xE74C3C,
     )
@@ -98,9 +83,7 @@ def build_alert_embed(data: LteData) -> discord.Embed:
     )
     embed.add_field(name="Remaining", value=remaining)
     embed.add_field(name="Days left", value=f"{data.remaining_days} days")
-    embed.set_footer(
-        text=f"Checked: {_dt_short(data.last_update)} · pass.telekom.de"
-    )
+    embed.set_footer(text=f"Checked: {_dt_short(data.last_update)} · pass.telekom.de")
     return embed
 
 
@@ -108,8 +91,7 @@ def build_all_clear_embed(percent: float, remaining_bytes: int) -> discord.Embed
     return discord.Embed(
         title="✅ Usage Normalized",
         description=(
-            f"Usage is back to **{percent:.0f}%** "
-            f"({_format_bytes(remaining_bytes)} remaining)."
+            f"Usage is back to **{percent:.0f}%** ({format_bytes(remaining_bytes)} remaining)."
         ),
         color=0x2ECC71,
     )

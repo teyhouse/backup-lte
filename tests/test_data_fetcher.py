@@ -1,7 +1,7 @@
 import unittest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from data_fetcher import LteData, _parse_data, MOCK_DATA, _parse_ms_timestamp
+from data_fetcher import MOCK_DATA, _parse_data, _parse_ms_timestamp
 
 
 class TestParseData(unittest.TestCase):
@@ -19,7 +19,7 @@ class TestParseData(unittest.TestCase):
         self.assertEqual(data.remaining_seconds, 2332800)
         self.assertEqual(data.next_update_seconds, 10800)
         self.assertEqual(data.subscriptions, ["tns", "xtraSpeed"])
-        self.assertEqual(data.valid_until, datetime(2026, 8, 24, tzinfo=timezone.utc))
+        self.assertEqual(data.valid_until, datetime(2026, 8, 24, tzinfo=UTC))
         self.assertIsInstance(data.last_update, datetime)
 
     def test_properties(self):

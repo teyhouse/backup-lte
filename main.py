@@ -37,9 +37,6 @@ def _run() -> None:
             logger.error("Connection lost: %s — retrying in 30s", e)
             time.sleep(30)
             continue
-        except KeyboardInterrupt:
-            logger.info("Shutdown requested")
-            return
         except Exception as e:
             logger.exception("Unexpected crash: %s — retrying in 30s", e)
             time.sleep(30)

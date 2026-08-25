@@ -1,15 +1,13 @@
 import json
 import logging
 import logging.handlers
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         data = {
-            "t": datetime.fromtimestamp(record.created, tz=timezone.utc).strftime(
-                "%Y-%m-%dT%H:%M:%S"
-            ),
+            "t": datetime.fromtimestamp(record.created, tz=UTC).strftime("%Y-%m-%dT%H:%M:%S"),
             "l": record.levelname,
             "n": record.name,
             "m": record.getMessage(),
