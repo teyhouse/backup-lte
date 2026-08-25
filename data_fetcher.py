@@ -26,23 +26,66 @@ _IPHONE_DEVICES = [
 ]
 
 
-def _build_user_agent() -> str:
+def _build_browser_profile() -> dict:
     if random.random() < 0.2:
         ios = random.choice(_IOS_VERSIONS)
         device = random.choice(_IPHONE_DEVICES)
         major = ios.split(".")[0]
-        return (
+        ua = (
             f"Mozilla/5.0 (iPhone; CPU iPhone OS {ios.replace('.', '_')} like Mac OS X) "
             f"AppleWebKit/605.1.15 (KHTML, like Gecko) Version/{major}.0 Mobile/15E148 "
             f"Safari/604.1"
         )
-    chrome = f"{random.choice(_CHROME_MAJORS)}.0.0.0"
+        return {"ua": ua, "chrome_major": None, "platform": "ios"}
+    chrome_major = random.choice(_CHROME_MAJORS)
     android = random.choice(_ANDROID_VERSIONS)
     device = random.choice(_ANDROID_DEVICES)
-    return (
+    ua = (
         f"Mozilla/5.0 (Linux; Android {android}; {device}) AppleWebKit/537.36 "
-        f"(KHTML, like Gecko) Chrome/{chrome} Mobile Safari/537.36"
+        f"(KHTML, like Gecko) Chrome/{chrome_major}.0.0.0 Mobile Safari/537.36"
     )
+    return {"ua": ua, "chrome_major": chrome_major, "platform": "android"}
+
+
+_ACCEPT_LANGUAGES = [
+    "de-DE,de;q=0.9,en;q=0.8",
+    "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7",
+    "de-DE,de-AT;q=0.9,de;q=0.8,en-US;q=0.6,en;q=0.5",
+    "de-DE,en-US;q=0.8,en;q=0.7",
+]
+_ACCEPT_HTML = [
+    (
+        "text/html,application/xhtml+xml,application/xml;q=0.9,"
+        "image/avif,image/webp,image/apng,*/*;q=0.8"
+    ),
+    ("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"),
+]
+
+
+def _build_headers(profile: dict) -> dict[str, str]:
+    headers = {
+        "User-Agent": profile["ua"],
+        "Accept": random.choice(_ACCEPT_HTML),
+        "Accept-Language": random.choice(_ACCEPT_LANGUAGES),
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+    }
+    if random.random() < 0.4:
+        headers["DNT"] = "1"
+    if profile["platform"] == "android":
+        major = profile["chrome_major"]
+        headers.update(
+            {
+                "Sec-CH-UA": f'"Chromium";v="{major}", "Google Chrome";v="{major}"',
+                "Sec-CH-UA-Mobile": "?1",
+                "Sec-CH-UA-Platform": '"Android"',
+                "Sec-Fetch-Dest": "document",
+                "Sec-Fetch-Mode": "navigate",
+                "Sec-Fetch-Site": "none",
+                "Upgrade-Insecure-Requests": "1",
+            }
+        )
+    return headers
 
 
 MONTH_MAP = {
@@ -266,11 +309,12 @@ async def get_lte_data() -> LteData:
     if MOCK_MODE:
         return _parse_data(MOCK_DATA)
 
+    profile = _build_browser_profile()
     async with (
         aiohttp.ClientSession() as session,
         session.get(
             HTML_URL,
-            headers={"User-Agent": _build_user_agent()},
+            headers=_build_headers(profile),
             timeout=aiohttp.ClientTimeout(total=15),
         ) as resp,
     ):
