@@ -1,5 +1,6 @@
 import contextlib
 import logging
+import random
 import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -12,10 +13,37 @@ from utils.humanize import format_bytes
 logger = logging.getLogger(__name__)
 
 HTML_URL = "https://pass.telekom.de/home"
-USER_AGENT = (
-    "Mozilla/5.0 (Linux; Android 15; SM-S938B) AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/140.0.0.0 Mobile Safari/537.36"
-)
+
+_CHROME_MAJORS = [133, 134, 135, 136, 137, 138, 139, 140]
+_ANDROID_VERSIONS = ["13", "14", "15"]
+_ANDROID_DEVICES = ["SM-S928B", "SM-S938B", "SM-A556B", "Pixel 8", "Pixel 9 Pro"]
+_IOS_VERSIONS = ["17.5", "17.6", "18.0", "18.1"]
+_IPHONE_DEVICES = [
+    "iPhone 15",
+    "iPhone 15 Pro Max",
+    "iPhone 16",
+    "iPhone 16 Pro",
+]
+
+
+def _build_user_agent() -> str:
+    if random.random() < 0.2:
+        ios = random.choice(_IOS_VERSIONS)
+        device = random.choice(_IPHONE_DEVICES)
+        major = ios.split(".")[0]
+        return (
+            f"Mozilla/5.0 (iPhone; CPU iPhone OS {ios.replace('.', '_')} like Mac OS X) "
+            f"AppleWebKit/605.1.15 (KHTML, like Gecko) Version/{major}.0 Mobile/15E148 "
+            f"Safari/604.1"
+        )
+    chrome = f"{random.choice(_CHROME_MAJORS)}.0.0.0"
+    android = random.choice(_ANDROID_VERSIONS)
+    device = random.choice(_ANDROID_DEVICES)
+    return (
+        f"Mozilla/5.0 (Linux; Android {android}; {device}) AppleWebKit/537.36 "
+        f"(KHTML, like Gecko) Chrome/{chrome} Mobile Safari/537.36"
+    )
+
 
 MONTH_MAP = {
     "Januar": 1,
@@ -242,7 +270,7 @@ async def get_lte_data() -> LteData:
         aiohttp.ClientSession() as session,
         session.get(
             HTML_URL,
-            headers={"User-Agent": USER_AGENT},
+            headers={"User-Agent": _build_user_agent()},
             timeout=aiohttp.ClientTimeout(total=15),
         ) as resp,
     ):

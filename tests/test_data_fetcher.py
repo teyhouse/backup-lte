@@ -1,7 +1,8 @@
+import random
 import unittest
 from datetime import UTC, datetime
 
-from data_fetcher import MOCK_DATA, _parse_data, _parse_ms_timestamp
+from data_fetcher import MOCK_DATA, _build_user_agent, _parse_data, _parse_ms_timestamp
 
 
 class TestParseData(unittest.TestCase):
@@ -57,3 +58,40 @@ class TestTimestampParsing(unittest.TestCase):
         dt = _parse_ms_timestamp(1782835472000)
         self.assertIsInstance(dt, datetime)
         self.assertEqual(dt.year, 2026)
+
+
+class TestUserAgent(unittest.TestCase):
+    def test_always_looks_like_a_browser(self):
+        for _ in range(100):
+            ua = _build_user_agent()
+            self.assertTrue(ua.startswith("Mozilla/5.0"))
+            self.assertIn("AppleWebKit", ua)
+
+    def test_android_variant_shape(self):
+        random.seed(1)
+        android_ua = None
+        for _ in range(200):
+            ua = _build_user_agent()
+            if "Android" in ua:
+                android_ua = ua
+                break
+        self.assertIsNotNone(android_ua)
+        self.assertIn("Linux; Android", android_ua)
+        self.assertRegex(android_ua, r"Chrome/\d+\.0\.0\.0 Mobile Safari/537\.36")
+
+    def test_ios_variant_shape(self):
+        random.seed(2)
+        ios_ua = None
+        for _ in range(200):
+            ua = _build_user_agent()
+            if "iPhone" in ua:
+                ios_ua = ua
+                break
+        self.assertIsNotNone(ios_ua)
+        self.assertIn("CPU iPhone OS", ios_ua)
+        self.assertIn("Safari/604.1", ios_ua)
+
+    def test_varies_between_calls(self):
+        random.seed(3)
+        agents = {_build_user_agent() for _ in range(50)}
+        self.assertGreater(len(agents), 1)
